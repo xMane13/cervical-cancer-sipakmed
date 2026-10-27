@@ -1,0 +1,26 @@
+# IMPORTANTE: instala PyTorch primero, desde su índice propio.
+# Hacerlo desde PyPI puede traer la build de solo CPU y el entrenamiento
+# pasa de minutos a horas.
+#
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+#
+# Verifica con:
+#   python -c "import torch; print(torch.cuda.is_available())"
+
+torch>=2.2
+torchvision>=0.17
+
+numpy>=1.24
+pandas>=2.0
+scikit-learn>=1.4
+scikit-image>=0.22
+opencv-python-headless>=4.9
+matplotlib>=3.8
+statsmodels>=0.14
+scipy>=1.11
+pillow>=10.0
+
+kagglehub>=0.3
+
+jupyterlab>=4.0
+ipywidgets>=8.0

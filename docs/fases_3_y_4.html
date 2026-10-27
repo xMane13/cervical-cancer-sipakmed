@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fases 3 y 4 — clasificación de células de papanicolaou</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --vidrio:#EFEDF4;        /* portaobjetos */
+  --panel:#FFFFFF;
+  --tinta:#241E3A;         /* texto */
+  --tinta-suave:#5A5273;
+  --nucleo:#5B3A8C;        /* hematoxilina */
+  --nucleo-claro:#8E7AB5;
+  --ciano:#2E7D8F;         /* cianófilo: fase 4 */
+  --eosina:#C2456B;        /* eosinófilo: fase 3 */
+  --borde:#DCD7E8;
+  --ok:#2E7D8F;
+  --alerta:#C2456B;
+  --sombra:0 1px 2px rgba(36,30,58,.05), 0 8px 24px -12px rgba(36,30,58,.18);
+  --r:14px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:92px}
+body{
+  margin:0; background:var(--vidrio); color:var(--tinta);
+  font-family:"Source Serif 4",Georgia,serif; font-size:17.5px; line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4,.ui{font-family:"Bricolage Grotesque","Helvetica Neue",sans-serif}
+code,pre,.mono{font-family:"JetBrains Mono",ui-monospace,monospace}
+
+/* ---------------- barra de progreso: la célula ---------------- */
+#rail{
+  position:fixed; top:0; left:0; right:0; height:4px;
+  background:linear-gradient(90deg,var(--eosina),var(--nucleo)) left/0% 100% no-repeat;
+  z-index:60; transition:background-size .1s linear;
+}
+#celula{
+  position:fixed; right:22px; bottom:22px; width:58px; height:58px; z-index:60;
+  background:var(--panel); border-radius:50%; box-shadow:var(--sombra);
+  border:1px solid var(--borde); display:grid; place-items:center;
+}
+#celula svg{width:44px;height:44px}
+#celula .pct{
+  position:absolute; bottom:-20px; left:50%; transform:translateX(-50%);
+  font-family:"JetBrains Mono",monospace; font-size:10px; color:var(--tinta-suave);
+}
+
+/* ---------------- navegación ---------------- */
+nav{
+  position:sticky; top:0; z-index:50; background:rgba(239,237,244,.92);
+  backdrop-filter:blur(10px); border-bottom:1px solid var(--borde);
+}
+.nav-in{
+  max-width:1080px; margin:0 auto; padding:10px 22px;
+  display:flex; gap:14px; align-items:center; flex-wrap:wrap;
+}
+.nav-in a{
+  font-family:"Bricolage Grotesque",sans-serif; font-size:13.5px; font-weight:600;
+  text-decoration:none; color:var(--tinta-suave); padding:6px 11px; border-radius:99px;
+  border:1px solid transparent; white-space:nowrap;
+}
+.nav-in a:hover{background:var(--panel); border-color:var(--borde); color:var(--tinta)}
+.nav-in a.f3{color:var(--eosina)} .nav-in a.f4{color:var(--ciano)}
+.spacer{flex:1}
+.toggle{
+  font-family:"Bricolage Grotesque",sans-serif; font-size:12.5px; font-weight:600;
+  background:var(--panel); border:1px solid var(--borde); color:var(--tinta-suave);
+  padding:7px 13px; border-radius:99px; cursor:pointer;
+}
+.toggle[aria-pressed="true"]{background:var(--nucleo); color:#fff; border-color:var(--nucleo)}
+
+/* ---------------- layout ---------------- */
+.wrap{max-width:1080px; margin:0 auto; padding:0 22px}
+header.hero{padding:64px 0 30px}
+.eyebrow{
+  font-family:"JetBrains Mono",monospace; font-size:11.5px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--nucleo-claro); margin-bottom:14px;
+}
+h1{font-size:clamp(34px,5.4vw,58px); line-height:1.04; margin:0 0 16px; font-weight:800; letter-spacing:-.02em}
+h1 em{font-style:normal; color:var(--nucleo)}
+.bajada{font-size:20px; color:var(--tinta-suave); max-width:60ch; margin:0}
+
+/* leyenda de aumentos */
+.leyenda{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px;
+  margin:34px 0 10px;
+}
+.lente{
+  background:var(--panel); border:1px solid var(--borde); border-radius:var(--r);
+  padding:15px 17px; box-shadow:var(--sombra);
+}
+.lente b{font-family:"JetBrains Mono",monospace; font-size:19px; color:var(--nucleo); display:block}
+.lente span{font-size:14.5px; color:var(--tinta-suave); line-height:1.45; display:block; margin-top:4px}
+
+/* ---------------- secciones ---------------- */
+section{padding:34px 0 10px}
+.fase-cab{
+  border-radius:var(--r); padding:26px 28px; color:#fff; margin-bottom:26px;
+  box-shadow:var(--sombra);
+}
+.f3 .fase-cab{background:linear-gradient(115deg,#C2456B,#8E3A70)}
+.f4 .fase-cab{background:linear-gradient(115deg,#2E7D8F,#3F5D9E)}
+.fase-cab .num{font-family:"JetBrains Mono",monospace; font-size:12px; letter-spacing:.18em; opacity:.85}
+.fase-cab h2{font-size:clamp(26px,3.6vw,38px); margin:6px 0 8px; line-height:1.1; font-weight:800; letter-spacing:-.015em}
+.fase-cab p{margin:0; opacity:.94; font-size:17px; max-width:62ch}
+
+.nivel{margin:0 0 30px}
+.nivel-cab{display:flex; align-items:center; gap:12px; margin:30px 0 14px; flex-wrap:wrap}
+.aumento{
+  font-family:"JetBrains Mono",monospace; font-weight:600; font-size:13px;
+  padding:5px 12px; border-radius:99px; border:1.5px solid currentColor; white-space:nowrap;
+}
+.f3 .aumento{color:var(--eosina)} .f4 .aumento{color:var(--ciano)}
+.nivel-cab h3{margin:0; font-size:23px; font-weight:600; letter-spacing:-.01em}
+.tiempo{font-family:"JetBrains Mono",monospace; font-size:11.5px; color:var(--nucleo-claro)}
+
+.card{
+  background:var(--panel); border:1px solid var(--borde); border-radius:var(--r);
+  padding:22px 26px; margin:14px 0; box-shadow:var(--sombra);
+}
+.card p{margin:0 0 13px} .card p:last-child{margin-bottom:0}
+.card h4{margin:22px 0 10px; font-size:17.5px; font-weight:600}
+.card h4:first-child{margin-top:0}
+
+/* idea clave */
+.clave{
+  border-left:5px solid var(--nucleo); background:#F7F5FC;
+  border-radius:0 var(--r) var(--r) 0; padding:18px 22px; margin:16px 0;
+}
+.clave .tag{
+  font-family:"JetBrains Mono",monospace; font-size:10.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--nucleo); display:block; margin-bottom:7px;
+}
+.clave p{margin:0; font-size:18px}
+
+/* cifras */
+.cifras{display:flex; gap:12px; flex-wrap:wrap; margin:18px 0}
+.cifra{
+  background:var(--panel); border:1px solid var(--borde); border-radius:12px;
+  padding:13px 18px; min-width:150px; flex:1;
+}
+.cifra b{display:block; font-family:"JetBrains Mono",monospace; font-size:26px; line-height:1.1; letter-spacing:-.02em}
+.cifra span{display:block; font-size:13.5px; color:var(--tinta-suave); margin-top:5px; line-height:1.35}
+.cifra.buena b{color:var(--ok)} .cifra.mala b{color:var(--alerta)} .cifra.neutra b{color:var(--nucleo)}
+
+/* tabla */
+table{width:100%; border-collapse:collapse; margin:16px 0; font-size:16px}
+th,td{padding:11px 14px; text-align:left; border-bottom:1px solid var(--borde)}
+th{font-family:"Bricolage Grotesque",sans-serif; font-size:13px; text-transform:uppercase;
+   letter-spacing:.07em; color:var(--tinta-suave); font-weight:600}
+td.n{font-family:"JetBrains Mono",monospace; text-align:right; font-weight:600}
+tr.destaca td{background:#F7F5FC}
+
+/* barras de R2 */
+.barras{margin:16px 0}
+.barra{display:grid; grid-template-columns:190px 1fr 58px; gap:12px; align-items:center; margin-bottom:9px}
+.barra .et{font-family:"JetBrains Mono",monospace; font-size:12.5px; color:var(--tinta-suave); overflow:hidden; text-overflow:ellipsis}
+.barra .pista{background:#EDEAF4; border-radius:99px; height:16px; overflow:hidden}
+.barra .relleno{height:100%; border-radius:99px}
+.barra .val{font-family:"JetBrains Mono",monospace; font-size:13px; font-weight:600; text-align:right}
+.si .relleno{background:linear-gradient(90deg,#2E7D8F,#4FA3B3)} .si .val{color:var(--ciano)}
+.no .relleno{background:linear-gradient(90deg,#C2456B,#DB7A98)} .no .val{color:var(--eosina)}
+
+/* codigo */
+.bloque{margin:18px 0; border:1px solid var(--borde); border-radius:var(--r); overflow:hidden; background:#FBFAFD}
+.bloque-cab{
+  display:flex; align-items:center; gap:9px; padding:11px 16px;
+  background:#F4F1FA; border-bottom:1px solid var(--borde);
+}
+.bloque-cab .paso{
+  font-family:"JetBrains Mono",monospace; font-size:11px; font-weight:600;
+  background:var(--nucleo); color:#fff; padding:3px 8px; border-radius:6px;
+}
+.bloque-cab .titulo{font-family:"Bricolage Grotesque",sans-serif; font-weight:600; font-size:15px}
+pre{margin:0; padding:17px 18px; overflow-x:auto; font-size:13.5px; line-height:1.62; background:#FBFAFD}
+pre code{white-space:pre}
+.tok-com{color:#7B72A0; font-style:italic}
+.tok-str{color:#2E7D8F}
+.tok-kw{color:#B23A6B; font-weight:600}
+.tok-num{color:#8A5A1E}
+.nota-cod{padding:15px 18px; border-top:1px solid var(--borde); background:var(--panel); font-size:16.5px}
+.nota-cod strong{color:var(--nucleo)}
+
+/* listas */
+ul{padding-left:22px; margin:12px 0} li{margin-bottom:9px}
+ul.marcada{list-style:none; padding-left:0}
+ul.marcada li{position:relative; padding-left:26px}
+ul.marcada li::before{
+  content:""; position:absolute; left:4px; top:.62em; width:9px; height:9px;
+  border-radius:50%; background:var(--nucleo-claro);
+}
+
+/* aviso */
+.aviso{
+  border:1px solid var(--borde); border-left:5px solid var(--alerta); background:#FDF4F7;
+  border-radius:0 var(--r) var(--r) 0; padding:18px 22px; margin:18px 0;
+}
+.aviso .tag{
+  font-family:"JetBrains Mono",monospace; font-size:10.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--alerta); display:block; margin-bottom:7px;
+}
+.aviso p:last-child{margin-bottom:0}
+
+mark{background:#F6E6C8; color:inherit; padding:1px 4px; border-radius:4px}
+code:not(pre code){background:#F1EEF8; padding:2px 6px; border-radius:5px; font-size:.87em; color:var(--nucleo)}
+
+footer{padding:52px 0 80px; color:var(--tinta-suave); font-size:15px}
+footer a{color:var(--nucleo)}
+
+/* modo sin nivel 100x */
+body.sin100 .n100{display:none}
+
+@media (max-width:640px){
+  body{font-size:16.5px}
+  .card{padding:18px 17px}
+  .barra{grid-template-columns:120px 1fr 48px; gap:8px}
+  #celula{width:46px;height:46px; right:12px; bottom:12px}
+  #celula svg{width:34px;height:34px}
+  .cifra{min-width:100%}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *{transition:none !important; animation:none !important}
+}
+</style>
+</head>
+<body>
+
+<div id="rail" role="progressbar" aria-label="Progreso de lectura"></div>
+
+<div id="celula" title="Progreso de lectura">
+  <svg viewBox="0 0 44 44" aria-hidden="true">
+    <circle cx="22" cy="22" r="20" fill="#F1EEF8" stroke="#DCD7E8"/>
+    <circle id="nuc" cx="22" cy="22" r="2" fill="#5B3A8C"/>
+  </svg>
+  <span class="pct" id="pct">0%</span>
+</div>
+
+<nav>
+  <div class="nav-in">
+    <a href="#top" class="ui">Inicio</a>
+    <a href="#fase3" class="f3">Fase 3 · las medidas</a>
+    <a href="#fase4" class="f4">Fase 4 · el sondeo</a>
+    <span class="spacer"></span>
+    <button class="toggle" id="btn100" aria-pressed="false">Ocultar nivel 100×</button>
+  </div>
+</nav>
+
+<div class="wrap" id="top">
+
+<header class="hero">
+  <div class="eyebrow">SIPaKMeD · 4049 células · 966 láminas</div>
+  <h1>Le dimos a la red las medidas del especialista.<br><em>Empeoró.</em></h1>
+  <p class="bajada">Esto explica qué hicimos para comprobarlo y qué encontramos cuando fuimos a
+  buscar el motivo. Tres niveles de detalle, como subir el aumento del microscopio: quédate en el
+  que necesites.</p>
+
+  <div class="leyenda">
+    <div class="lente"><b>4×</b><span>Panorámica. La idea en dos párrafos, para contarla en una presentación.</span></div>
+    <div class="lente"><b>20×</b><span>Cómo se comprobó, con los números y el código comentado.</span></div>
+    <div class="lente"><b>100×</b><span>Inmersión. Los detalles finos y las trampas, para la defensa.</span></div>
+  </div>
+  <p style="font-size:15px;color:var(--tinta-suave);margin-top:14px">
+    Si el 100× te satura, el botón de arriba lo esconde y la página se acorta a la mitad.
+  </p>
+</header>
+
+<!-- ================================================== FASE 3 -->
+<section id="fase3" class="f3">
+  <div class="fase-cab">
+    <div class="num">FASE 3</div>
+    <h2>¿Ayudan las medidas del especialista?</h2>
+    <p>Un citotecnólogo mira cosas concretas: qué tan grande es el núcleo, cuánto ocupa dentro de la
+    célula, si está oscuro, si es redondo. Se las dimos a la red además de la foto.</p>
+  </div>
+
+  <!-- ---------- nivel 1 ---------- -->
+  <div class="nivel">
+    <div class="nivel-cab">
+      <span class="aumento">4×</span>
+      <h3>La idea</h3>
+      <span class="tiempo">1 min</span>
+    </div>
+
+    <div class="card">
+      <p>Un citotecnólogo al microscopio no mira la célula "en general": mira cosas concretas. Qué tan
+      grande es el núcleo, cuánto espacio ocupa dentro de la célula, si está oscuro, si es redondo. El
+      dataset trae esos contornos ya dibujados a mano, así que podemos calcular esas medidas y
+      <strong>dárselas a la red además de la foto</strong>.</p>
+      <p>La idea era: si la red ve la foto <em>y</em> además recibe los números que usa el experto,
+      debería acertar más.</p>
+
+      <div class="clave">
+        <span class="tag">Resultado</span>
+        <p>No acertó más, <strong>acertó menos</strong>. 0.9731 sin las medidas, 0.9671 con ellas.</p>
+      </div>
+
+      <div class="cifras">
+        <div class="cifra buena"><b>0.9731</b><span>macro F1 solo con la foto</span></div>
+        <div class="cifra mala"><b>0.9671</b><span>macro F1 con la foto + las 26 medidas</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- nivel 2 ---------- -->
+  <div class="nivel">
+    <div class="nivel-cab">
+      <span class="aumento">20×</span>
+      <h3>Cómo se comprobó</h3>
+      <span class="tiempo">6 min</span>
+    </div>
+
+    <div class="card">
+      <p>Lo delicado aquí no es el experimento, es la comparación. El error típico en los trabajos
+      publicados es entrenar una red grande con medidas y compararla contra una red distinta sin
+      medidas. Ahí cambian dos cosas a la vez y no sabes cuál causó la diferencia.</p>
+
+      <div class="clave">
+        <span class="tag">El principio</span>
+        <p>Misma red, misma cabeza, mismas épocas, misma semilla y mismos pliegues. Lo único que
+        cambia es si el vector de 26 medidas se le pega o no. <strong>Una sola variable.</strong></p>
+      </div>
+
+      <p>Se compararon tres modelos:</p>
+      <table>
+        <thead><tr><th>Modelo</th><th style="text-align:right">Macro F1</th></tr></thead>
+        <tbody>
+          <tr><td>Solo medidas, sin ver la foto</td><td class="n">0.8505</td></tr>
+          <tr class="destaca"><td>Solo la foto</td><td class="n" style="color:var(--ok)">0.9731</td></tr>
+          <tr><td>Foto + medidas</td><td class="n" style="color:var(--alerta)">0.9671</td></tr>
+        </tbody>
+      </table>
+
+      <p>Y la comparación se cerró con una prueba pareada célula por célula: <mark>49 células que el
+      modelo acierta sin medidas y falla con ellas, contra 25 en sentido contrario, p = 0.0075</mark>.
+      <strong>No es ruido: empeora de verdad.</strong></p>
+
+      <p>Un detalle que importa: el modelo de solo medidas llega a 0.85 sin mirar una foto. O sea que
+      <strong>las medidas no son basura</strong>, tienen señal real. El problema no es la calidad de la
+      información.</p>
+    </div>
+
+    <h4 class="ui" style="font-size:19px;margin:26px 0 4px">El código, paso a paso</h4>
+
+    <div class="bloque">
+      <div class="bloque-cab"><span class="paso">PASO 1</span>
+        <span class="titulo">Sacar las medidas de forma de un contorno</span></div>
+      <pre><code class="py">def medidas_contorno(cnt):
+    area = cv2.contourArea(cnt)
+    per = cv2.arcLength(cnt, True)
+    area_hull = cv2.contourArea(cv2.convexHull(cnt))
+
+    circ = 4 * np.pi * area / (per ** 2) if per > 0 else np.nan     # 1 = círculo perfecto
+    sol = area / area_hull if area_hull > 0 else np.nan             # qué tan "lleno" es
+    diam = np.sqrt(4 * area / np.pi)
+
+    if len(cnt) >= 5:                                               # la elipse necesita 5 puntos
+        (_, _), (e1, e2), _ = cv2.fitEllipse(cnt)
+        may, men = max(e1, e2), min(e1, e2)
+        alarg = men / may if may > 0 else np.nan
+        exc = np.sqrt(1 - (men / may) ** 2) if may > 0 else np.nan
+    else:
+        alarg = exc = np.nan
+
+    M = cv2.moments(cnt)
+    cx = M["m10"] / M["m00"] if M["m00"] > 0 else np.nan
+    cy = M["m01"] / M["m00"] if M["m00"] > 0 else np.nan
+    return area, per, circ, sol, diam, alarg, exc, cx, cy</code></pre>
+      <div class="nota-cod">
+        Un contorno es una lista de coordenadas. De ahí salen los descriptores geométricos:
+        <ul class="marcada">
+          <li><strong><code>circ</code></strong> compara el área con el perímetro. Un círculo da 1;
+          cuanto más irregular o dentado el borde, más baja. Es la "redondez".</li>
+          <li><strong><code>sol</code></strong> divide el área real entre la de su envoltura convexa
+          (la goma elástica que rodearía el contorno). Si vale 1 no hay entrantes; si baja, el borde
+          tiene muescas.</li>
+          <li><strong><code>fitEllipse</code></strong> ajusta una elipse y devuelve sus dos ejes. El
+          cociente entre el menor y el mayor es el alargamiento: 1 es redondo, cerca de 0 es un
+          cigarro. <strong>Necesita al menos 5 puntos</strong>, y de ahí salen los 135 valores no
+          calculables de todo el dataset.</li>
+          <li><strong><code>moments</code></strong> da el centro de masa del contorno, que después se
+          usa para saber si el núcleo está centrado o corrido.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="bloque">
+      <div class="bloque-cab"><span class="paso">PASO 2</span>
+        <span class="titulo">Juntar todo por célula</span></div>
+      <pre><code class="py">def caracteristicas(fila):
+    gris = cv2.cvtColor(cv2.imread(fila["img"]), cv2.COLOR_BGR2GRAY)
+    alto, ancho = gris.shape
+    cyt = contorno(fila["cyt"]).reshape(-1, 1, 2)
+    nuc = contorno(fila["nuc"]).reshape(-1, 1, 2)
+
+    a_c, p_c, ci_c, so_c, d_c, al_c, ex_c, cx_c, cy_c = medidas_contorno(cyt)
+    a_n, p_n, ci_n, so_n, d_n, al_n, ex_n, cx_n, cy_n = medidas_contorno(nuc)
+
+    m_cyt = np.zeros(gris.shape, np.uint8); cv2.fillPoly(m_cyt, [cyt.reshape(-1, 2)], 1)
+    m_nuc = np.zeros(gris.shape, np.uint8); cv2.fillPoly(m_nuc, [nuc.reshape(-1, 2)], 1)
+    m_cit = np.clip(m_cyt.astype(int) - m_nuc.astype(int), 0, 1).astype(np.uint8)
+    ...</code></pre>
+      <div class="nota-cod">
+        <p>La función completa combina lo geométrico con lo de color y textura. <strong>La parte
+        importante son las tres máscaras.</strong> <code>fillPoly</code> rellena el polígono, así que
+        <code>m_cyt</code> marca toda la célula y <code>m_nuc</code> solo el núcleo. La resta da
+        <code>m_cit</code>, <strong>el citoplasma sin el núcleo</strong>, que es lo que hace falta para
+        comparar el brillo de una zona contra la otra.</p>
+        <p>Si midieras la intensidad sobre <code>m_cyt</code> entero, estarías promediando el núcleo
+        consigo mismo y el contraste saldría diluido.</p>
+        <p>El <code>np.clip(..., 0, 1)</code> protege contra el caso raro de un núcleo anotado fuera de
+        su célula: sin él, la resta daría −1 en esos píxeles.</p>
+      </div>
+    </div>
+
+    <div class="bloque">
+      <div class="bloque-cab"><span class="paso">PASO 3</span>
+        <span class="titulo">El modelo que solo usa medidas</span></div>
+      <pre><code class="py">pred_medidas = np.full(len(df), -1)
+for k in range(5):
+    tr = np.where(df["fold_lamina"].values != k)[0]
+    te = np.where(df["fold_lamina"].values == k)[0]
+    m = HistGradientBoostingClassifier(max_iter=300, learning_rate=0.08,
+                                       random_state=SEMILLA)
+    m.fit(F.iloc[tr], Y[tr])
+    pred_medidas[te] = m.predict(F.iloc[te])</code></pre>
+      <div class="nota-cod">
+        <p>Árboles de decisión potenciados, no una red. Dos motivos: es rapidísimo, y <strong>maneja
+        los valores faltantes por dentro</strong>, así que aquí no hace falta rellenar los 135 huecos.</p>
+        <p>Fíjate en que usa <code>fold_lamina</code>, los mismos pliegues que todo lo demás: eso es lo
+        que permite comparar los tres modelos entre sí.</p>
+      </div>
+    </div>
+
+    <div class="bloque">
+      <div class="bloque-cab"><span class="paso">PASO 4</span>
+        <span class="titulo">El escalado sin fuga · esto es lo que hay que saber defender</span></div>
+      <pre><code class="py">def escalar(tr, te):
+    """Escala con estadísticas del ENTRENAMIENTO únicamente. Calcularlas sobre
+    todo el dataset sería pasarle información del examen al modelo."""
+    mu, sd = F.iloc[tr].mean(), F.iloc[tr].std().replace(0, 1)
+    med = F.iloc[tr].median()
+    return (np.nan_to_num(((F.iloc[tr].fillna(med) - mu) / sd).values),
+            np.nan_to_num(((F.iloc[te].fillna(med) - mu) / sd).values))</code></pre>
+      <div class="nota-cod">
+        <p>Las tres estadísticas (<code>mu</code>, <code>sd</code>, <code>med</code>) se calculan
+        <strong>solo con <code>tr</code></strong> y después se aplican tanto a <code>tr</code> como a
+        <code>te</code>. Escribir <code>F.mean()</code> en vez de <code>F.iloc[tr].mean()</code> sería
+        una fuga: el promedio del conjunto completo contiene información de las células de examen.</p>
+        <p>Es sutil porque <mark>no rompe nada ni da error, solo infla el resultado</mark>. Y es
+        exactamente el mismo tipo de problema que atacamos en la fase 2 con el reparto, así que sería
+        incoherente evitarlo allá y cometerlo aquí.</p>
+        <p>El <code>.replace(0, 1)</code> evita dividir entre cero si alguna medida fuera constante.</p>
+      </div>
+    </div>
+
+    <div class="bloque">
+      <div class="bloque-cab"><span class="paso">PASO 5</span>
+        <span class="titulo">La misma red con y sin medidas</span></div>
+      <pre><code class="py">def crear_red(n_extra=0):
+    base = models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.IMAGENET1K_V1)
+    base.classifier = nn.Identity()                 # nos quedamos con los 1280 números
+    cabeza = nn.Sequential(nn.Linear(1280 + n_extra, 256), nn.ReLU(), nn.Dropout(0.3),
+                           nn.Linear(256, len(CLASES)))
+    return base.to(DEV), cabeza.to(DEV)</code></pre>
+      <div class="nota-cod">
+        <p><code>nn.Identity()</code> reemplaza el clasificador original de 1000 clases de ImageNet por
+        "no hagas nada", de modo que <code>base(x)</code> devuelve el vector de 1280 en crudo. Ese corte
+        es lo que permite después pegarle las medidas y también lo que hace posible toda la fase 4.</p>
+        <p><code>n_extra</code> es el único interruptor entre las dos condiciones: con 0 la cabeza
+        recibe 1280, con 26 recibe 1306. <strong>Todo lo demás del código es literalmente el mismo.</strong></p>
+      </div>
+      <pre style="border-top:1px solid var(--borde)"><code class="py">z = base(x)
+if n_extra:
+    z = torch.cat([z, ex], dim=1)
+loss = criterio(cabeza(z), y)</code></pre>
+      <div class="nota-cod">Y en el entrenamiento, la concatenación.</div>
+    </div>
+
+    <div class="bloque">
+      <div class="bloque-cab"><span class="paso">PASO 6</span>
+        <span class="titulo">La comparación pareada</span></div>
+      <pre><code class="py">def comparar(p1, p2, n1="modelo 1", n2="modelo 2"):
+    """Compara dos modelos célula por célula. Solo cuentan los casos donde discrepan."""
+    o1, o2 = (p1 == Y), (p2 == Y)
+    t = [[int((o1 & o2).sum()), int((o1 & ~o2).sum())],
+         [int((~o1 & o2).sum()), int((~o1 & ~o2).sum())]]
+    r = mcnemar(t, exact=False, correction=True)</code></pre>
+      <div class="nota-cod">
+        <p>McNemar no compara los dos porcentajes globales, compara <strong>los desacuerdos</strong>.
+        Las casillas que importan son las de fuera de la diagonal: cuántas acierta uno y falla el otro,
+        y viceversa. Si están repartidas parejo, la diferencia es azar.</p>
+        <p>Esto se puede hacer aquí porque cada célula tiene predicción en las dos condiciones (los
+        cinco pliegues cubren todo el dataset), así que la comparación es pareada y mucho más sensible
+        que mirar dos medias.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- nivel 3 ---------- -->
+  <div class="nivel n100">
+    <div class="nivel-cab">
+      <span class="aumento">100×</span>
+      <h3>Los detalles</h3>
+      <span class="tiempo">5 min</span>
+    </div>
+
+    <div class="card">
+      <h4>Las 26 medidas</h4>
+      <p>De cada contorno se sacan área, perímetro, diámetro equivalente, circularidad (4πA/P², vale 1
+      en un círculo perfecto), solidez (área dividida por la de su envoltura convexa, que detecta
+      entrantes), alargamiento y excentricidad ajustando una elipse. Eso por duplicado, núcleo y
+      citoplasma, más los cocientes entre ambos. Después el desplazamiento del núcleo respecto al
+      centro de la célula, normalizado por la raíz del área para que no dependa del tamaño. Luego
+      intensidad media del núcleo, del citoplasma sin el núcleo, el contraste entre los dos y la
+      desviación dentro del núcleo. Textura con una matriz de coocurrencia a 32 niveles de gris:
+      contraste, homogeneidad y energía. Y el tamaño original del recorte.</p>
+    </div>
+
+    <div class="bloque">
+      <div class="bloque-cab"><span class="paso">DETALLE</span>
+        <span class="titulo">La textura tiene una decisión escondida</span></div>
+      <pre><code class="py">x, y, w_, h_ = cv2.boundingRect(nuc)
+rec = gris[y:y+h_, x:x+w_]
+if rec.size > 16:
+    g = graycomatrix((rec // 8).astype(np.uint8), [1], [0], levels=32,
+                     symmetric=True, normed=True)</code></pre>
+      <div class="nota-cod">
+        <p>La matriz de coocurrencia cuenta con qué frecuencia dos niveles de gris aparecen juntos a
+        cierta distancia. Con 256 niveles la matriz sería de 256×256 y con un núcleo de unos pocos
+        cientos de píxeles quedaría casi vacía, o sea puro ruido.</p>
+        <p>El <code>// 8</code> la reduce a 32 niveles para que las cuentas sean estables.
+        <code>[1]</code> y <code>[0]</code> significan distancia de un píxel en horizontal.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4>La arquitectura de fusión</h4>
+      <p>EfficientNet-B0 produce un vector de 1280 números; se concatenan las 26 medidas y entra un
+      perceptrón de 256 unidades con dropout 0.3 hasta las 5 clases. Cuando no hay medidas, la entrada
+      es de 1280 y todo lo demás es idéntico.</p>
+
+      <h4>Por qué empeora, y no solo "no ayuda"</h4>
+      <p>Tres explicaciones compatibles:</p>
+      <ul class="marcada">
+        <li>Las 26 entradas extra son <strong>26×256 parámetros adicionales</strong> en la primera capa
+        que la red tiene que aprender a ignorar, y con 4049 ejemplos eso cuesta capacidad.</li>
+        <li>Son <strong>redundantes</strong> respecto a lo que la red ya extrae, así que no compran nada
+        a cambio.</li>
+        <li>Añaden <strong>ruido de optimización</strong>.</li>
+      </ul>
+      <p>La caída se concentra justo donde esperábamos ganancia (koilocitótica pierde 1.5 puntos,
+      metaplásica 1.2), lo cual encaja con que sean un estorbo y no una ayuda mal aprovechada.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================== FASE 4 -->
+<section id="fase4" class="f4">
+  <div class="fase-cab">
+    <div class="num">FASE 4</div>
+    <h2>Entonces, ¿por qué no ayudan?</h2>
+    <p>Un resultado negativo se puede reportar como "no funcionó" y ya. Es mucho mejor explicar por qué.</p>
+  </div>
+
+  <!-- ---------- nivel 1 ---------- -->
+  <div class="nivel">
+    <div class="nivel-cab">
+      <span class="aumento">4×</span>
+      <h3>La idea</h3>
+      <span class="tiempo">1 min</span>
+    </div>
+
+    <div class="card">
+      <p>La hipótesis era: <strong>la red ya calcula esas medidas por su cuenta</strong>, así que
+      dárselas es repetirle algo que ya sabe.</p>
+
+      <div class="clave">
+        <span class="tag">El truco del experimento</span>
+        <p>Cuando la red procesa una foto, antes de decidir la clase produce 1280 números que la
+        resumen. En vez de usarlos para adivinar la clase, los usamos para <strong>adivinar las
+        medidas</strong>. Si desde esos números se puede reconstruir la proporción núcleo/célula, es
+        que estaba ahí adentro.</p>
+      </div>
+
+      <p>Resultado: la hipótesis era <strong>solo a medias</strong>, y apareció algo que no
+      esperábamos.</p>
+    </div>
+  </div>
+
+  <!-- ---------- nivel 2 ---------- -->
+  <div class="nivel">
+    <div class="nivel-cab">
+      <span class="aumento">20×</span>
+      <h3>Qué salió</h3>
+      <span class="tiempo">7 min</span>
+    </div>
+
+    <div class="card">
+      <p>Se mide con R²: cerca de 1, la medida se reconstruye bien; cerca de 0, no está.</p>
+
+      <h4 style="color:var(--ciano)">Lo que la red sí tiene — color e intensidad</h4>
+      <div class="barras">
+        <div class="barra si"><span class="et">cyt_area</span><span class="pista"><span class="relleno" style="width:83%"></span></span><span class="val">0.83</span></div>
+        <div class="barra si"><span class="et">nc_area</span><span class="pista"><span class="relleno" style="width:66%"></span></span><span class="val">0.66</span></div>
+        <div class="barra si"><span class="et">int_nuc</span><span class="pista"><span class="relleno" style="width:64%"></span></span><span class="val">0.64</span></div>
+        <div class="barra si"><span class="et">contraste_nuc_cit</span><span class="pista"><span class="relleno" style="width:64%"></span></span><span class="val">0.64</span></div>
+        <div class="barra si"><span class="et">glcm_contraste</span><span class="pista"><span class="relleno" style="width:56%"></span></span><span class="val">0.56</span></div>
+      </div>
+
+      <h4 style="color:var(--eosina)">Lo que no tiene — forma</h4>
+      <div class="barras">
+        <div class="barra no"><span class="et">nuc_circ</span><span class="pista"><span class="relleno" style="width:19%"></span></span><span class="val">0.19</span></div>
+        <div class="barra no"><span class="et">nuc_area</span><span class="pista"><span class="relleno" style="width:16%"></span></span><span class="val">0.16</span></div>
+        <div class="barra no"><span class="et">nuc_sol</span><span class="pista"><span class="relleno" style="width:8%"></span></span><span class="val">0.08</span></div>
+        <div class="barra no"><span class="et">nuc_alarg</span><span class="pista"><span class="relleno" style="width:4.5%"></span></span><span class="val">0.045</span></div>
+        <div class="barra no"><span class="et">desplaz_nucleo</span><span class="pista"><span class="relleno" style="width:0%"></span></span><span class="val">−0.03</span></div>
+      </div>
+
+      <div class="clave">
+        <span class="tag">La conclusión, mejor que la hipótesis</span>
+        <p>La red mira el núcleo pero <strong>lo mide por su color, no por su geometría</strong>. Y en
+        la fase 3 le dimos justamente la geometría que le falta, y no le sirvió. O sea que
+        <em>lo que le falta no es lo que necesita</em>.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4>La sorpresa</h4>
+      <p>Metimos como control la misma red <strong>sin entrenar en células</strong>, tal como viene
+      preentrenada con fotos genéricas. Recupera las medidas mejor que la nuestra <mark>en las doce,
+      sin una sola excepción</mark>. El caso más marcado es el alargamiento del núcleo, que cae de 0.19
+      a 0.045 tras el entrenamiento.</p>
+      <p>Eso significa que ajustar la red a esta tarea <strong>empobrece</strong> su descripción de la
+      morfología. La red aprende a quedarse solo con lo que le sirve para separar cinco clases y
+      descarta el resto.</p>
+
+      <div class="cifras">
+        <div class="cifra neutra"><b>0.19</b><span>alargamiento del núcleo, red genérica</span></div>
+        <div class="cifra mala"><b>0.045</b><span>la misma medida, tras entrenar</span></div>
+      </div>
+
+      <h4>Y un cabo suelto que se cerró</h4>
+      <p>Creíamos que al escalar todo a 224×224 se perdía el tamaño real de la célula. Pues no:
+      <code>ancho_orig</code> se recupera con R² 0.79. Un recorte pequeño ampliado se ve borroso y de
+      grano grueso, así que la escala deja huella. Lo comprobamos entrenando con solo esos dos números
+      y, en efecto, no cambió nada (0.9702 vs 0.9731, p = 0.27).</p>
+    </div>
+
+    <h4 class="ui" style="font-size:19px;margin:26px 0 4px">El código, paso a paso</h4>
+
+    <div class="bloque">
+      <div class="bloque-cab"><span class="paso">PASO 1</span>
+        <span class="titulo">Guardar el resumen interno de cada foto</span></div>
+      <pre><code class="py">with torch.no_grad():
+    for lote in dl_te:
+        ...
+        z = base(x.to(DEV))                        # los 1280 números
+        s = cabeza(torch.cat([z, ex], dim=1) if n_extra else z)
+        preds.append(s.argmax(1).cpu().numpy())
+        if devolver_emb:
+            embs.append(z.float().cpu().numpy())   # esto es lo que analizamos</code></pre>
+      <div class="nota-cod">
+        Es el mismo <code>z</code> que en la fase 3 se concatenaba con las medidas. La diferencia es que
+        aquí, en vez de pasarlo a la cabeza y olvidarlo, lo guardamos.
+      </div>
+      <pre style="border-top:1px solid var(--borde)"><code class="py">EMB = np.zeros((len(df), 1280), dtype=np.float32)
+for k in range(5):
+    tr = np.where(df["fold_lamina"].values != k)[0]
+    te = np.where(df["fold_lamina"].values == k)[0]
+    p, e = entrenar(tr, te, devolver_emb=True)
+    pred_img[te] = p
+    EMB[te] = e</code></pre>
+      <div class="nota-cod">
+        <p><strong>Aquí está el requisito que hace válido todo el experimento.</strong> El resumen de las
+        células del pliegue <code>k</code> sale del modelo entrenado con los otros cuatro, o sea de un
+        modelo que <mark>nunca las vio</mark>.</p>
+        <p>Si usaras un modelo que ya las conoce, estarías midiendo memorización, no representación, y el
+        R² saldría alto sin significar nada.</p>
+      </div>
+    </div>
+
+    <div class="bloque">
+      <div class="bloque-cab"><span class="paso">PASO 2</span>
+        <span class="titulo">El control: la red sin entrenar</span></div>
+      <pre><code class="py">base_gen = models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.IMAGENET1K_V1)
+base_gen.classifier = nn.Identity()
+base_gen = base_gen.to(DEV).eval()
+
+EMB_GEN = np.zeros((len(df), 1280), dtype=np.float32)
+dl = DataLoader(Celulas(np.arange(len(df)), tf_eval), batch_size=128, num_workers=2)
+pos = 0
+with torch.no_grad():
+    for x, y, _ in dl:
+        z = base_gen(x.to(DEV))
+        EMB_GEN[pos:pos+len(z)] = z.float().cpu().numpy()
+        pos += len(z)</code></pre>
+      <div class="nota-cod">
+        <p>Exactamente la misma arquitectura y los mismos pesos de partida, pero <strong>sin la fase de
+        entrenamiento</strong>. Una sola pasada sobre todas las células, sin pliegues, porque no hay
+        nada que pueda memorizar: nunca vio ninguna.</p>
+        <p>Esto es lo que convierte el experimento en una comparación en vez de un número suelto. Sin
+        este control, un R² de 0.66 no te dice nada: ¿es mucho o poco? Con el control sabes que
+        <strong>es menos de lo que había antes de entrenar</strong>.</p>
+      </div>
+    </div>
+
+    <div class="bloque">
+      <div class="bloque-cab"><span class="paso">PASO 3</span>
+        <span class="titulo">El sondeo</span></div>
+      <pre><code class="py">def sondear(EMBED, medida):
+    """Intenta recuperar una medida desde el resumen de la red, con los mismos pliegues."""
+    obj = F[medida].values.astype(float)
+    validos = ~np.isnan(obj)
+    pred = np.full(len(df), np.nan)
+    for k in range(5):
+        tr = np.where((df["fold_lamina"].values != k) & validos)[0]
+        te = np.where((df["fold_lamina"].values == k) & validos)[0]
+        mu, sd = EMBED[tr].mean(0), EMBED[tr].std(0) + 1e-6      # escalado solo con train
+        mod = RidgeCV(alphas=ALFAS).fit((EMBED[tr] - mu) / sd, obj[tr])
+        pred[te] = mod.predict((EMBED[te] - mu) / sd)
+    ok = ~np.isnan(pred)
+    return r2_score(obj[ok], pred[ok]), pred</code></pre>
+      <div class="nota-cod">
+        <p>Cuatro decisiones dentro de estas pocas líneas:</p>
+        <ul class="marcada">
+          <li><strong><code>RidgeCV</code> y no una red.</strong> El sondeo tiene que ser
+          <em>deliberadamente simple</em>. Si usaras un modelo potente para reconstruir la medida,
+          podría estar calculándola él mismo a partir de información parcial, y ya no sabrías si estaba
+          en la red o la inventó el sondeo. Una regresión lineal regularizada solo puede leer lo que ya
+          está linealmente disponible.</li>
+          <li><strong><code>alphas=ALFAS</code></strong> hace que elija sola su nivel de regularización.
+          Con 1280 variables y unos 3200 ejemplos por pliegue, sin regularizar se sobreajustaría de
+          inmediato.</li>
+          <li><strong><code>&amp; validos</code></strong> excluye las células donde la medida no se pudo
+          calcular (las de menos de 5 puntos en el contorno). Se excluyen del ajuste y del R², no se
+          rellenan: rellenar aquí introduciría un valor inventado en la variable que estamos tratando de
+          predecir.</li>
+          <li><strong>El escalado, otra vez solo con <code>tr</code>.</strong> Misma disciplina que en la
+          fase 3.</li>
+        </ul>
+        <p>El R² se calcula sobre las predicciones <strong>fuera de muestra concatenadas</strong> de los
+        cinco pliegues, o sea sobre las 4049 células, cada una predicha por un modelo que no la usó.</p>
+      </div>
+    </div>
+
+    <div class="bloque">
+      <div class="bloque-cab"><span class="paso">PASO 4</span>
+        <span class="titulo">La comprobación del tamaño</span></div>
+      <pre><code class="py">TAM = F[["ancho_orig", "alto_orig"]]
+for k in range(5):
+    tr = np.where(df["fold_lamina"].values != k)[0]
+    te = np.where(df["fold_lamina"].values == k)[0]
+    mu, sd = TAM.iloc[tr].mean(), TAM.iloc[tr].std().replace(0, 1)
+    pred_tam[te] = entrenar(tr, te,
+                            ((TAM.iloc[tr] - mu) / sd).values,
+                            ((TAM.iloc[te] - mu) / sd).values)</code></pre>
+      <div class="nota-cod">
+        Es la fase 3 otra vez pero con <code>n_extra=2</code> en vez de 26. Que se pueda hacer cambiando
+        solo qué columnas se pasan, sin tocar ni la red ni el bucle, es precisamente la ventaja de haber
+        unificado el código: <strong>la comparación es indiscutible porque es el mismo programa</strong>.
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- nivel 3 ---------- -->
+  <div class="nivel n100">
+    <div class="nivel-cab">
+      <span class="aumento">100×</span>
+      <h3>Los detalles y las trampas</h3>
+      <span class="tiempo">6 min</span>
+    </div>
+
+    <div class="card">
+      <h4>Qué es exactamente el sondeo</h4>
+      <p>Una regresión de cresta con el parámetro de regularización elegido por validación interna,
+      entrenada sobre los 1280 números para predecir cada medida, con los mismos cinco pliegues por
+      lámina y el R² calculado sobre las predicciones fuera de muestra.</p>
+    </div>
+
+    <div class="aviso">
+      <span class="tag">La limitación honesta · la que más peso tiene</span>
+      <p>Un R² bajo <strong>no</strong> prueba que la información "no esté en la red". Prueba que
+      <strong>no es linealmente recuperable desde el vector de 1280 posterior al promediado
+      global</strong>.</p>
+      <p>Ahí está la clave, y se ve en la arquitectura. EfficientNet-B0 produce internamente un mapa de
+      7×7 con 1280 canales; el promediado global lo colapsa a un solo número por canal, y ese es el
+      vector que sondeamos. Las estadísticas de intensidad y textura <strong>sobreviven a un
+      promedio</strong>, porque son promedios en sí mismas. La geometría, que es intrínsecamente
+      espacial, <strong>no sobrevive</strong>: al promediar sobre las 49 posiciones se pierde dónde
+      estaba cada cosa.</p>
+      <p>O sea que parte de lo que medimos podría ser un efecto del cuello de botella del promediado y no
+      de la red en sí. Hay que declararlo, y sugiere el experimento siguiente evidente: repetir el
+      sondeo desde el mapa de 7×7 antes de promediar, que es accesible con el mismo gancho que usamos
+      para los mapas de calor en la fase 5.</p>
+    </div>
+
+    <div class="bloque">
+      <div class="bloque-cab"><span class="paso">SIGUIENTE</span>
+        <span class="titulo">El gancho que permitiría cerrar esa duda</span></div>
+      <pre><code class="py">h = base.features[-1].register_forward_hook(lambda m, e, s: g.__setitem__("act", s))</code></pre>
+      <div class="nota-cod">
+        Si desde ahí la forma sí aparece, la conclusión se matiza y pasa a ser "la red la calcula pero la
+        descarta al promediar". Si no aparece, se refuerza mucho.
+      </div>
+    </div>
+
+    <div class="card">
+      <h4>Una asimetría menor del control</h4>
+      <p>Los resúmenes de la red ajustada vienen de cinco modelos distintos (uno por pliegue), mientras
+      que los genéricos vienen de un único extractor fijo. Eso añade algo de varianza al lado ajustado.
+      No invalida nada, sobre todo porque la diferencia va en las doce medidas en la misma dirección,
+      pero conviene mencionarlo antes de que lo mencionen por ti.</p>
+
+      <h4>Sobre el R² negativo</h4>
+      <p>El desplazamiento del núcleo sale en −0.03. Un R² por debajo de cero significa que las
+      predicciones son peores que responder siempre el promedio: no hay ninguna señal, y lo poco que el
+      modelo creyó encontrar en entrenamiento no se sostuvo fuera de muestra. Es el resultado más limpio
+      posible de "esta información no está".</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>Proyecto SIPaKMeD · fases 3 y 4 · tres niveles de aumento. El resto de las fases está en el
+  notebook completo.</p>
+</footer>
+
+</div>
+
+<script>
+/* ---------- resaltado de sintaxis para Python, sin dependencias ---------- */
+(function(){
+  const re = /(#[^\n]*)|("""[\s\S]*?"""|'[^'\n]*'|"[^"\n]*")|\b(def|class|return|if|else|elif|for|in|import|from|as|with|not|and|or|None|True|False|lambda|while|assert|range|len|int|float)\b|\b(\d+\.?\d*(?:e-?\d+)?)\b/g;
+  document.querySelectorAll('pre code.py').forEach(el=>{
+    const txt = el.textContent;
+    let out = '', last = 0, m;
+    const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    while((m = re.exec(txt)) !== null){
+      out += esc(txt.slice(last, m.index));
+      if(m[1])      out += '<span class="tok-com">'+esc(m[1])+'</span>';
+      else if(m[2]) out += '<span class="tok-str">'+esc(m[2])+'</span>';
+      else if(m[3]) out += '<span class="tok-kw">'+esc(m[3])+'</span>';
+      else if(m[4]) out += '<span class="tok-num">'+esc(m[4])+'</span>';
+      last = m.index + m[0].length;
+    }
+    out += esc(txt.slice(last));
+    el.innerHTML = out;
+  });
+})();
+
+/* ---------- progreso: la barra y el núcleo que crece ---------- */
+(function(){
+  const rail = document.getElementById('rail');
+  const nuc  = document.getElementById('nuc');
+  const pct  = document.getElementById('pct');
+  let tick = false;
+  function pintar(){
+    const alto = document.documentElement.scrollHeight - window.innerHeight;
+    const p = alto > 0 ? Math.min(1, Math.max(0, window.scrollY / alto)) : 0;
+    rail.style.backgroundSize = (p*100).toFixed(1) + '% 100%';
+    nuc.setAttribute('r', (2 + p*13).toFixed(2));   // el núcleo ocupa más de la célula
+    pct.textContent = Math.round(p*100) + '%';
+    rail.setAttribute('aria-valuenow', Math.round(p*100));
+    tick = false;
+  }
+  addEventListener('scroll', ()=>{ if(!tick){ tick = true; requestAnimationFrame(pintar); } }, {passive:true});
+  addEventListener('resize', pintar);
+  pintar();
+})();
+
+/* ---------- esconder el nivel 100x ---------- */
+(function(){
+  const btn = document.getElementById('btn100');
+  btn.addEventListener('click', ()=>{
+    const oculto = document.body.classList.toggle('sin100');
+    btn.setAttribute('aria-pressed', oculto);
+    btn.textContent = oculto ? 'Mostrar nivel 100×' : 'Ocultar nivel 100×';
+  });
+})();
+</script>
+</body>
+</html>

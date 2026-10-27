@@ -1,0 +1,38 @@
+# Resultados de los notebooks (se regeneran al ejecutar)
+resultados/*
+!resultados/.gitkeep
+*.npy
+*.pt
+*.pth
+
+# Dataset: no se versiona, se descarga con kagglehub
+datos/
+data/
+*.bmp
+*.dat
+*.tar.gz
+*.zip
+
+# Credenciales. Nunca subir el token de Kaggle
+kaggle.json
+.kaggle/
+access_token
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+*-checkpoint.ipynb
+
+# Sistema
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
